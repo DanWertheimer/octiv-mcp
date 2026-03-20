@@ -183,7 +183,7 @@ class OctivClient:
         }
 
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.get(f"{API_BASE}/class-dates", headers=headers, params=params)
+            resp = await client.get(f"{API_BASE}/api/class-dates", headers=headers, params=params)
             if resp.status_code == 401:
                 self._invalidate_token()
                 raise ValueError("Authentication expired. Please retry.")

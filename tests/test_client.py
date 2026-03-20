@@ -151,7 +151,7 @@ def test_extract_gym_ids_raises_when_location_missing(client, monkeypatch):
 async def test_get_class_dates_returns_data(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
     respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
-    respx.get(f"{API_BASE}/class-dates").mock(
+    respx.get(f"{API_BASE}/api/class-dates").mock(
         return_value=httpx.Response(200, json=CLASS_DATES_RESPONSE)
     )
     result = await client.get_class_dates("2026-03-20", "2026-03-26")
@@ -162,7 +162,7 @@ async def test_get_class_dates_returns_data(client):
 async def test_get_class_dates_401_invalidates_token(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
     respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
-    respx.get(f"{API_BASE}/class-dates").mock(return_value=httpx.Response(401))
+    respx.get(f"{API_BASE}/api/class-dates").mock(return_value=httpx.Response(401))
     with pytest.raises(ValueError, match="Authentication expired"):
         await client.get_class_dates("2026-03-20", "2026-03-26")
     assert client._token is None
