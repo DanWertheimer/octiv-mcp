@@ -12,7 +12,7 @@ from server import API_BASE, OctivClient
 
 ME_RESPONSE = {
     "id": 42,
-    "userTenant": {"tenantId": 101134, "defaultLocationId": 1091},
+    "userTenants": [{"tenantId": 101134, "defaultLocationId": 1091}],
 }
 TOKEN_RESPONSE = {
     "accessToken": "tok123",
@@ -99,7 +99,7 @@ async def test_invalidate_token_clears_state(client):
 @respx.mock
 async def test_get_me_fetches_and_returns(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     me = await client.get_me()
     assert me["id"] == 42
 
@@ -139,7 +139,7 @@ def test_extract_gym_ids_raises_when_tenant_missing(client, monkeypatch):
 def test_extract_gym_ids_raises_when_location_missing(client, monkeypatch):
     monkeypatch.delenv("OCTIV_TENANT_ID", raising=False)
     monkeypatch.delenv("OCTIV_LOCATION_ID", raising=False)
-    me_no_location = {"id": 42, "userTenant": {"tenantId": 101134}}
+    me_no_location = {"id": 42, "userTenants": [{"tenantId": 101134}]}
     with pytest.raises(ValueError, match="location ID"):
         client._extract_gym_ids(me_no_location)
 
@@ -150,7 +150,7 @@ def test_extract_gym_ids_raises_when_location_missing(client, monkeypatch):
 @respx.mock
 async def test_get_class_dates_returns_data(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/class-dates").mock(
         return_value=httpx.Response(200, json=CLASS_DATES_RESPONSE)
     )
@@ -161,7 +161,7 @@ async def test_get_class_dates_returns_data(client):
 @respx.mock
 async def test_get_class_dates_401_invalidates_token(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/class-dates").mock(return_value=httpx.Response(401))
     with pytest.raises(ValueError, match="Authentication expired"):
         await client.get_class_dates("2026-03-20", "2026-03-26")
@@ -174,7 +174,7 @@ async def test_get_class_dates_401_invalidates_token(client):
 @respx.mock
 async def test_get_programmes_returns_list(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/api/programmes").mock(
         return_value=httpx.Response(200, json=PROGRAMMES_RESPONSE)
     )
@@ -186,7 +186,7 @@ async def test_get_programmes_returns_list(client):
 @respx.mock
 async def test_get_programmes_401_invalidates_token(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/api/programmes").mock(return_value=httpx.Response(401))
     with pytest.raises(ValueError, match="Authentication expired"):
         await client.get_programmes()
@@ -199,7 +199,7 @@ async def test_get_programmes_401_invalidates_token(client):
 @respx.mock
 async def test_get_wods_returns_data(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/api/wods").mock(return_value=httpx.Response(200, json=WODS_RESPONSE))
     result = await client.get_wods("2026-03-19", "2026-03-20")
     assert "data" in result
@@ -209,7 +209,7 @@ async def test_get_wods_returns_data(client):
 async def test_get_wods_omits_programme_ids_when_not_set(client, monkeypatch):
     monkeypatch.delenv("OCTIV_PROGRAMME_IDS", raising=False)
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     route = respx.get(f"{API_BASE}/api/wods").mock(
         return_value=httpx.Response(200, json=WODS_RESPONSE)
     )
@@ -221,7 +221,7 @@ async def test_get_wods_omits_programme_ids_when_not_set(client, monkeypatch):
 async def test_get_wods_uses_env_programme_ids(client, monkeypatch):
     monkeypatch.setenv("OCTIV_PROGRAMME_IDS", "999")
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     route = respx.get(f"{API_BASE}/api/wods").mock(
         return_value=httpx.Response(200, json=WODS_RESPONSE)
     )
@@ -232,7 +232,7 @@ async def test_get_wods_uses_env_programme_ids(client, monkeypatch):
 @respx.mock
 async def test_get_wods_accepts_explicit_programme_ids(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     route = respx.get(f"{API_BASE}/api/wods").mock(
         return_value=httpx.Response(200, json=WODS_RESPONSE)
     )
@@ -244,7 +244,7 @@ async def test_get_wods_accepts_explicit_programme_ids(client):
 @respx.mock
 async def test_get_wods_401_invalidates_token(client):
     respx.post(f"{API_BASE}/api/login").mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
-    respx.get(f"{API_BASE}/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
+    respx.get(f"{API_BASE}/api/users/me").mock(return_value=httpx.Response(200, json=ME_RESPONSE))
     respx.get(f"{API_BASE}/api/wods").mock(return_value=httpx.Response(401))
     with pytest.raises(ValueError, match="Authentication expired"):
         await client.get_wods("2026-03-19", "2026-03-20")

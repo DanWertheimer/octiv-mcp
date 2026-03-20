@@ -73,11 +73,13 @@ class OctivClient:
             resp = await client.post(
                 f"{API_BASE}/api/login",
                 json={"username": self.username, "password": self.password},
+                headers={"Accept": "application/json", "x-camelcase": "true"},
             )
             resp.raise_for_status()
             data = resp.json()
             self._save_token(data)
             self._token = data["accessToken"]
+            return self._token
             return self._token
 
     def _invalidate_token(self):
@@ -92,6 +94,7 @@ class OctivClient:
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "x-camelcase": "true",
         }
 
     # ── User / gym info ───────────────────────────────────────────────────────
@@ -118,7 +121,7 @@ class OctivClient:
             return self._user_info
         headers = await self._headers()
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{API_BASE}/me", headers=headers)
+            resp = await client.get(f"{API_BASE}/api/users/me", headers=headers)
             resp.raise_for_status()
             data = resp.json()
             self._save_user(data)
@@ -135,8 +138,12 @@ class OctivClient:
         location_id = os.environ.get("OCTIV_LOCATION_ID")
 
         if not tenant_id or not location_id:
-            # Auto-detect from the profile returned by /me
-            user_tenant = me.get("userTenant") or {}
+            # Auto-detect from the profile returned by /api/users/me
+            # The API returns a "userTenants" array; pick the first one with a defaultLocationId
+            user_tenants = me.get("userTenants") or []
+            user_tenant = next(
+                (t for t in user_tenants if t.get("defaultLocationId")), {}
+            ) or (user_tenants[0] if user_tenants else {})
             tenant_id = tenant_id or str(user_tenant.get("tenantId", ""))
             location_id = location_id or str(user_tenant.get("defaultLocationId") or "")
 
