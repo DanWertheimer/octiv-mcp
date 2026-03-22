@@ -1,0 +1,23 @@
+name = "octiv-mcp-worker"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[durable_objects]
+bindings = [
+  { name = "OctivMCP", class_name = "OctivMCP" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["OctivMCP"]
+
+# Secrets — set with `wrangler secret put <NAME>`:
+#   MCP_SECRET        — random bearer token you'll put in Claude settings
+#   OCTIV_USERNAME    — your Octiv login email
+#   OCTIV_PASSWORD    — your Octiv password
+#
+# Optional vars (auto-detected from /api/users/me if omitted):
+#   OCTIV_TENANT_ID
+#   OCTIV_LOCATION_ID
+#   OCTIV_PROGRAMME_IDS   — comma-separated; skips "select programme" prompt in get_wod
